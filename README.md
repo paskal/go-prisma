@@ -1,4 +1,4 @@
-# Go Palo Alto Prisma Cloud library  [![Build Status](https://github.com/paskal/go-prisma/workflows/build/badge.svg)](https://github.com/paskal/go-prisma/actions) [![Go Report Card](https://goreportcard.com/badge/github.com/paskal/go-prisma)](https://goreportcard.com/report/github.com/paskal/go-prisma)
+# Go Palo Alto Prisma Cloud library  [![Build Status](https://github.com/paskal/go-prisma/workflows/test/badge.svg)](https://github.com/paskal/go-prisma/actions) [![Go Report Card](https://goreportcard.com/badge/github.com/paskal/go-prisma)](https://goreportcard.com/report/github.com/paskal/go-prisma)
 
 Tiny library for [Prisma Cloud API](https://api.docs.prismacloud.io/reference) access. 
 
