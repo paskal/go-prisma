@@ -26,9 +26,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// prismRenewTimeout defines how often auth token is renewed,
+// prismaRenewTimeout defines how often auth token is renewed,
 // after 10 minutes it gets invalidated and new complete login is required
-const prismRenewTimeout = time.Minute * 3
+const prismaRenewTimeout = time.Minute * 3
 const httpClientTimeout = time.Second * 5
 
 // Prisma is an object to make API calls to Palo Alto Prisma,
@@ -48,7 +48,7 @@ func (p *Prisma) DoAPIRequest(method, url string, body io.Reader) ([]byte, error
 		return nil, errors.Wrap(err, "error creating request")
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if time.Since(p.tokenRenewTime) > prismRenewTimeout {
+	if time.Since(p.tokenRenewTime) > prismaRenewTimeout {
 		if err := p.authenticate(); err != nil {
 			return nil, errors.Wrap(err, "error getting auth token")
 		}
