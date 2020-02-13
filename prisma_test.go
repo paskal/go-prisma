@@ -88,7 +88,7 @@ func TestApiRequest(t *testing.T) {
 	}
 
 	// start tests
-	p := &Prisma{}
+	p := &API{}
 
 	for i, x := range testAPIRequestsDataset {
 		p.apiURL = x.serverURL
@@ -173,7 +173,7 @@ func TestNewPrisma(t *testing.T) {
 		} else {
 			assert.NoError(t, err, "Test case %d error check failed", i)
 		}
-		assert.NotNil(t, p, "Test case %d Prisma object return check failed", i)
-		assert.Equal(t, x.responseToken, p.token, "Test case %d Prisma object token check failed", i)
+		assert.NotNil(t, p, "Test case %d API object return check failed", i)
+		assert.Equal(t, x.responseToken, p.token, "Test case %d API object token check failed", i)
 	}
 }

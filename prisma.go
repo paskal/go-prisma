@@ -32,8 +32,8 @@ import (
 const prismaRenewTimeout = time.Minute * 3
 const httpClientTimeout = time.Second * 5
 
-// Prisma is an object to make authorized API calls to Palo Alto Prisma
-type Prisma struct {
+// API is an object to make API calls to Palo Alto Prisma Cloud
+type API struct {
 	username       string
 	password       string
 	apiURL         string
@@ -50,12 +50,12 @@ type authResponse struct {
 //
 // username and password are the same as API Key and API Password.
 // Recommended value for apiURL is https://api.eu.prismacloud.io
-func NewClient(username, password, apiURL string) *Prisma {
-	return &Prisma{username: username, password: password, apiURL: apiURL}
+func NewClient(username, password, apiURL string) *API {
+	return &API{username: username, password: password, apiURL: apiURL}
 }
 
 // DoAPIRequest does request to API with specified method and returns response body on success.
-func (p *Prisma) DoAPIRequest(method, url string, body io.Reader) ([]byte, error) {
+func (p *API) DoAPIRequest(method, url string, body io.Reader) ([]byte, error) {
 	req, err := http.NewRequest(method, p.apiURL+url, body)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating request")
@@ -93,7 +93,7 @@ func (p *Prisma) DoAPIRequest(method, url string, body io.Reader) ([]byte, error
 
 // authenticate gets or renews the API authentication token
 // https://api.docs.prismacloud.io/reference#login
-func (p *Prisma) authenticate() error {
+func (p *API) authenticate() error {
 	p.tokenRenewTime = time.Now()
 	var res = &authResponse{}
 	switch p.token {
