@@ -70,7 +70,8 @@ func TestApiRequest(t *testing.T) {
 		{serverURL: "http://[::1]:namedport", method: "POST",
 			error: "error creating request: parse http://[::1]:namedport: invalid port \":namedport\" after host"},
 		{serverURL: "nonexistent_url", method: "POST",
-			error: "error getting auth token: error logging in with user \"\": error making request: Post nonexistent_url/login: unsupported protocol scheme \"\""},
+			error: "error getting auth token: error logging in with user \"\": " +
+				"error making request: Post nonexistent_url/login: unsupported protocol scheme \"\""},
 		{serverURL: goodServer.URL, method: "POST", url: "/login",
 			responseBody: []byte("one, two, three"), body: bytes.NewReader([]byte("test_text"))},
 		{serverURL: badServer.URL, method: "GET", url: "/",
@@ -147,7 +148,8 @@ func TestNewPrisma(t *testing.T) {
 		setToken      string
 	}{
 		{serverURL: "nonexistent_url", username: "test_username",
-			error: "error logging in with user \"test_username\": error making request: Post nonexistent_url/login: unsupported protocol scheme \"\""},
+			error: "error logging in with user \"test_username\": error making request: " +
+				"Post nonexistent_url/login: unsupported protocol scheme \"\""},
 		{serverURL: goodServer.URL, username: "test_user", password: "test_password", responseToken: "test_token"},
 		{serverURL: badAnswerServer.URL,
 			error: "error obtaining token from login response: invalid character 'o' in literal null (expecting 'u')"},
