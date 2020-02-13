@@ -1,3 +1,4 @@
+// Copyright 2020 Dmitry Verkhoturov <paskal.07@gmail.com>
 // Copyright 2019 Booking.com
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,19 +32,31 @@ import (
 const prismaRenewTimeout = time.Minute * 3
 const httpClientTimeout = time.Second * 5
 
-// Prisma is an object to make API calls to Palo Alto Prisma,
-// authorized requests if proper Token is set
+// Prisma is an object to make authorized API calls to Palo Alto Prisma
 type Prisma struct {
-	Username       string
-	Password       string
-	Token          string `json:"token"`
-	APIUrl         string // example is https://api.eu.prismacloud.io
+	username       string
+	password       string
+	apiURL         string
+	token          string
 	tokenRenewTime time.Time
 }
 
-// DoAPIRequest does request to API with specified method and returns response body on success
+// service structure for authentication API endpoints response unmarshaling
+type authResponse struct {
+	Token string `json:"token"`
+}
+
+// NewClient returns new Prisma API client instance.
+//
+// username and password are the same as API Key and API Password.
+// Recommended value for apiURL is https://api.eu.prismacloud.io
+func NewClient(username, password, apiURL string) *Prisma {
+	return &Prisma{username: username, password: password, apiURL: apiURL}
+}
+
+// DoAPIRequest does request to API with specified method and returns response body on success.
 func (p *Prisma) DoAPIRequest(method, url string, body io.Reader) ([]byte, error) {
-	req, err := http.NewRequest(method, p.APIUrl+url, body)
+	req, err := http.NewRequest(method, p.apiURL+url, body)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating request")
 	}
@@ -53,14 +66,14 @@ func (p *Prisma) DoAPIRequest(method, url string, body io.Reader) ([]byte, error
 			return nil, errors.Wrap(err, "error getting auth token")
 		}
 	}
-	req.Header.Set("x-redlock-auth", p.Token)
+	req.Header.Set("x-redlock-auth", p.token)
 	httpClient := http.Client{Timeout: httpClientTimeout}
 	response, err := httpClient.Do(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "error making request")
 	}
 	data, err := ioutil.ReadAll(response.Body)
-	defer response.Body.Close()
+	defer response.Body.Close() // nolint:errcheck
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading response body, response body: %q", data)
 	}
@@ -82,34 +95,37 @@ func (p *Prisma) DoAPIRequest(method, url string, body io.Reader) ([]byte, error
 // https://api.docs.prismacloud.io/reference#login
 func (p *Prisma) authenticate() error {
 	p.tokenRenewTime = time.Now()
-	switch p.Token {
+	var res = &authResponse{}
+	switch p.token {
 	case "":
 		// no token set yet, first login
-		loginData := map[string]string{"username": p.Username, "password": p.Password}
+		loginData := map[string]string{"username": p.username, "password": p.password}
 		jsonValue, err := json.Marshal(loginData)
 		if err != nil {
 			return errors.Wrap(err, "error marshaling login data")
 		}
 		data, err := p.DoAPIRequest("POST", "/login", bytes.NewBuffer(jsonValue))
 		if err != nil {
-			return errors.Wrapf(err, "error logging in with user %q", p.Username)
+			return errors.Wrapf(err, "error logging in with user %q", p.username)
 		}
-		if err := json.Unmarshal(data, p); err != nil {
+		if err := json.Unmarshal(data, res); err != nil {
 			return errors.Wrap(err, "error obtaining token from login response")
 		}
+		p.token = res.Token
 	default:
 		// token is set and we will try to renew it
 		data, err := p.DoAPIRequest("GET", "/auth_token/extend", nil)
 		if err != nil {
 			log.Printf("[INFO] Error extending token, will re-login, %v", err)
-			p.Token = ""
+			p.token = ""
 			return p.authenticate()
 		}
-		if err := json.Unmarshal(data, p); err != nil {
+		if err := json.Unmarshal(data, res); err != nil {
 			log.Printf("[INFO] Error obtaining token from extend token response, will re-login, %v", err)
-			p.Token = ""
+			p.token = ""
 			return p.authenticate()
 		}
+		p.token = res.Token
 	}
 	return nil
 }

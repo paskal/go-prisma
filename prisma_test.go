@@ -1,3 +1,4 @@
+// Copyright 2020 Dmitry Verkhoturov <paskal.07@gmail.com>
 // Copyright 2019 Booking.com
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -90,7 +91,7 @@ func TestApiRequest(t *testing.T) {
 	p := &Prisma{}
 
 	for i, x := range testAPIRequestsDataset {
-		p.APIUrl = x.serverURL
+		p.apiURL = x.serverURL
 		data, err := p.DoAPIRequest(x.method, x.url, x.body)
 		if x.error != "" {
 			assert.EqualError(t, err, x.error, "Test case %d error check failed", i)
@@ -164,8 +165,8 @@ func TestNewPrisma(t *testing.T) {
 	// start tests
 
 	for i, x := range testAPIRequestsDataset {
-		p := &Prisma{Username: x.username, Password: x.password, APIUrl: x.serverURL}
-		p.Token = x.setToken
+		p := NewClient(x.username, x.password, x.serverURL)
+		p.token = x.setToken
 		err := p.authenticate()
 		if x.error != "" {
 			assert.EqualError(t, err, x.error, "Test case %d error check failed", i)
@@ -173,6 +174,6 @@ func TestNewPrisma(t *testing.T) {
 			assert.NoError(t, err, "Test case %d error check failed", i)
 		}
 		assert.NotNil(t, p, "Test case %d Prisma object return check failed", i)
-		assert.Equal(t, x.responseToken, p.Token, "Test case %d Prisma object token check failed", i)
+		assert.Equal(t, x.responseToken, p.token, "Test case %d Prisma object token check failed", i)
 	}
 }
