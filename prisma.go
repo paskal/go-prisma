@@ -55,6 +55,7 @@ func NewClient(username, password, apiURL string) *API {
 }
 
 // DoAPIRequest does request to API with specified method and returns response body on success.
+// Not thread safe.
 func (p *API) DoAPIRequest(method, url string, body io.Reader) ([]byte, error) {
 	req, err := http.NewRequest(method, p.apiURL+url, body)
 	if err != nil {

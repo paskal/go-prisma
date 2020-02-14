@@ -1,6 +1,8 @@
 # Go Palo Alto Prisma Cloud library  [![Build Status](https://github.com/paskal/go-prisma/workflows/test/badge.svg)](https://github.com/paskal/go-prisma/actions) [![Go Report Card](https://goreportcard.com/badge/github.com/paskal/go-prisma)](https://goreportcard.com/report/github.com/paskal/go-prisma)[![Coverage Status](https://coveralls.io/repos/github/paskal/go-prisma/badge.svg?branch=master)](https://coveralls.io/github/paskal/go-prisma?branch=master)[![GoDoc](https://godoc.org/github.com/paskal/go-prisma?status.svg)](https://pkg.go.dev/github.com/paskal/go-prisma?tab=doc)
 
-Tiny library for [Prisma Cloud API](https://api.docs.prismacloud.io/reference) access. 
+Tiny library for [Prisma Cloud API](https://api.docs.prismacloud.io/reference) access.
+
+It takes care of authorization and token renewal, and let you concentrate on issuing requests.
 
 ## How to install
 
