@@ -61,6 +61,7 @@ func TestApiRequest(t *testing.T) {
 	defer serverStatusNotFound.Close()
 
 	var testAPIRequestsDataset = []struct {
+		description  string
 		serverURL    string
 		method       string
 		url          string
@@ -68,22 +69,30 @@ func TestApiRequest(t *testing.T) {
 		responseBody []byte
 		body         io.Reader
 	}{
-		{serverURL: "http://[::1]:namedport", method: "POST",
+		{description: "bad port",
+			serverURL: "http://[::1]:namedport", method: "POST",
 			error: "error creating request: parse http://[::1]:namedport: invalid port \":namedport\" after host"},
-		{serverURL: "nonexistent_url", method: "POST",
+		{description: "nonexistent url",
+			serverURL: "nonexistent_url", method: "POST",
 			error: "error getting auth token: error logging in with user \"\": " +
 				"error making request: Post nonexistent_url/login: unsupported protocol scheme \"\""},
-		{serverURL: goodServer.URL, method: "POST", url: "/login",
+		{description: "good response",
+			serverURL: goodServer.URL, method: "POST", url: "/login",
 			responseBody: []byte("one, two, three"), body: bytes.NewReader([]byte("test_text"))},
-		{serverURL: badServer.URL, method: "GET", url: "/",
+		{description: "bad response",
+			serverURL: badServer.URL, method: "GET", url: "/",
 			error: "error reading response body, response body: \"\": unexpected EOF"},
-		{serverURL: serverStatusUnauthorized.URL, method: "GET",
+		{description: "authentication error",
+			serverURL: serverStatusUnauthorized.URL, method: "GET",
 			error: "authentication error on request, response body: \"\""},
-		{serverURL: serverStatusBadRequest.URL, method: "GET",
+		{description: "bad request error",
+			serverURL: serverStatusBadRequest.URL, method: "GET",
 			error: "bad request parameters, check your request body, response body: \"\""},
-		{serverURL: serverStatusInternalServerError.URL, method: "GET",
+		{description: "internal error",
+			serverURL: serverStatusInternalServerError.URL, method: "GET",
 			error: "server internal error during request processing, response body: \"\""},
-		{serverURL: serverStatusNotFound.URL, method: "GET",
+		{description: "not found error",
+			serverURL: serverStatusNotFound.URL, method: "GET",
 			error: "404 Not Found, response body: \"\""},
 	}
 
@@ -91,18 +100,22 @@ func TestApiRequest(t *testing.T) {
 	p := &API{}
 
 	for i, x := range testAPIRequestsDataset {
-		p.apiURL = x.serverURL
-		data, err := p.DoAPIRequest(x.method, x.url, x.body)
-		if x.error != "" {
-			assert.EqualError(t, err, x.error, "Test case %d error check failed", i)
-		} else {
-			assert.NoError(t, err, "Test case %d error check failed", i)
-		}
-		if x.responseBody != nil {
-			assert.Equal(t, x.responseBody, data, "Test case %d response data check failed", i)
-		} else {
-			assert.Nil(t, data, "Test case %d response data check failed", i)
-		}
+		i := i
+		x := x
+		t.Run(x.description, func(t *testing.T) {
+			p.apiURL = x.serverURL
+			data, err := p.DoAPIRequest(x.method, x.url, x.body)
+			if x.error != "" {
+				assert.EqualError(t, err, x.error, "Test case %d error check failed", i)
+			} else {
+				assert.NoError(t, err, "Test case %d error check failed", i)
+			}
+			if x.responseBody != nil {
+				assert.Equal(t, x.responseBody, data, "Test case %d response data check failed", i)
+			} else {
+				assert.Nil(t, data, "Test case %d response data check failed", i)
+			}
+		})
 	}
 }
 
@@ -141,6 +154,7 @@ func TestNewPrisma(t *testing.T) {
 	defer badAnswerServer.Close()
 
 	var testAPIRequestsDataset = []struct {
+		description   string
 		serverURL     string
 		username      string
 		password      string
@@ -148,32 +162,42 @@ func TestNewPrisma(t *testing.T) {
 		responseToken string
 		setToken      string
 	}{
-		{serverURL: "nonexistent_url", username: "test_username",
+		{description: "nonexistent url",
+			serverURL: "nonexistent_url", username: "test_username",
 			error: "error logging in with user \"test_username\": error making request: " +
 				"Post nonexistent_url/login: unsupported protocol scheme \"\""},
-		{serverURL: goodServer.URL, username: "test_user", password: "test_password", responseToken: "test_token"},
-		{serverURL: badAnswerServer.URL,
-			error: "error obtaining token from login response: invalid character 'o' in literal null (expecting 'u')"},
-		{serverURL: goodRenewServer.URL, username: "test_user", password: "test_password",
+		{description: "good server",
+			serverURL: goodServer.URL, username: "test_user", password: "test_password", responseToken: "test_token"},
+		{description: "bad server answer",
+			serverURL: badAnswerServer.URL,
+			error:     "error obtaining token from login response: invalid character 'o' in literal null (expecting 'u')"},
+		{description: "good renew server",
+			serverURL: goodRenewServer.URL, username: "test_user", password: "test_password",
 			setToken: "old_good_token", responseToken: "test_token_renewed"},
-		{serverURL: badRenewServer.URL, username: "test_user", password: "test_password", setToken: "old_bad_token",
+		{description: "bad renew server",
+			serverURL: badRenewServer.URL, username: "test_user", password: "test_password", setToken: "old_bad_token",
 			error: "error logging in with user \"test_user\": authentication error on request, response body: \"\""},
-		{serverURL: badEmptyServer.URL, username: "test_user", password: "test_password", setToken: "old_bad_token",
+		{description: "empty answer server",
+			serverURL: badEmptyServer.URL, username: "test_user", password: "test_password", setToken: "old_bad_token",
 			error: "error obtaining token from login response: unexpected end of JSON input"},
 	}
 
 	// start tests
 
 	for i, x := range testAPIRequestsDataset {
-		p := NewClient(x.username, x.password, x.serverURL)
-		p.token = x.setToken
-		err := p.authenticate()
-		if x.error != "" {
-			assert.EqualError(t, err, x.error, "Test case %d error check failed", i)
-		} else {
-			assert.NoError(t, err, "Test case %d error check failed", i)
-		}
-		assert.NotNil(t, p, "Test case %d API object return check failed", i)
-		assert.Equal(t, x.responseToken, p.token, "Test case %d API object token check failed", i)
+		i := i
+		x := x
+		t.Run(x.description, func(t *testing.T) {
+			p := NewClient(x.username, x.password, x.serverURL)
+			p.token = x.setToken
+			err := p.authenticate()
+			if x.error != "" {
+				assert.EqualError(t, err, x.error, "Test case %d error check failed", i)
+			} else {
+				assert.NoError(t, err, "Test case %d error check failed", i)
+			}
+			assert.NotNil(t, p, "Test case %d API object return check failed", i)
+			assert.Equal(t, x.responseToken, p.token, "Test case %d API object token check failed", i)
+		})
 	}
 }
