@@ -97,7 +97,7 @@ func TestApiRequest(t *testing.T) {
 	}
 
 	// start tests
-	p := &API{}
+	p := API{}
 
 	for i, x := range testAPIRequestsDataset {
 		i := i

@@ -50,8 +50,8 @@ type authResponse struct {
 //
 // username and password are the same as API Key and API Password.
 // Recommended value for apiURL is https://api.eu.prismacloud.io
-func NewClient(username, password, apiURL string) *API {
-	return &API{username: username, password: password, apiURL: apiURL}
+func NewClient(username, password, apiURL string) API {
+	return API{username: username, password: password, apiURL: apiURL}
 }
 
 // DoAPIRequest does request to API with specified method and returns response body on success.
