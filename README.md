@@ -24,14 +24,12 @@ import (
 	"github.com/paskal/go-prisma"
 )
 
-type opts struct {
-	PrismAPIUrl      string `long:"prisma_api_url" default:"https://api.eu.prismacloud.io" description:"Prisma API URL"`
-	PrismAPIKey      string `long:"prisma_api_key" required:"true" description:"Prisma API key"`
-	PrismAPIPassword string `long:"prisma_api_password" required:"true" description:"Prisma API password"`
-}
-
 func main() {
-	var opts = opts{}
+	var opts struct {
+		PrismAPIUrl      string `long:"prisma_api_url" default:"https://api.eu.prismacloud.io" description:"Prisma API URL"`
+		PrismAPIKey      string `long:"prisma_api_key" required:"true" description:"Prisma API key"`
+		PrismAPIPassword string `long:"prisma_api_password" required:"true" description:"Prisma API password"`
+	}
 	if _, err := flags.Parse(&opts); err != nil {
 		os.Exit(1)
 	}
@@ -47,4 +45,5 @@ func main() {
 	}
 	log.Printf("[INFO] Prisma /check endpoint answer: %s", healthCheckResult)
 }
+
 ```
