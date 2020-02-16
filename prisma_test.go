@@ -71,11 +71,11 @@ func TestApiRequest(t *testing.T) {
 	}{
 		{description: "bad port",
 			serverURL: "http://[::1]:namedport", method: "POST",
-			error: "error creating request: parse http://[::1]:namedport: invalid port \":namedport\" after host"},
+			error: "error getting auth token: error logging in with user \"\": error creating request: " +
+				"parse http://[::1]:namedport/login: invalid port \":namedport\" after host"},
 		{description: "nonexistent url",
 			serverURL: "nonexistent_url", method: "POST",
-			error: "error getting auth token: error logging in with user \"\": " +
-				"error making request: Post nonexistent_url/login: unsupported protocol scheme \"\""},
+			error: "error making request: Post nonexistent_url: unsupported protocol scheme \"\""},
 		{description: "good response",
 			serverURL: goodServer.URL, method: "POST", url: "/login",
 			responseBody: []byte("one, two, three"), body: bytes.NewReader([]byte("test_text"))},

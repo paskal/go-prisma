@@ -54,20 +54,28 @@ func NewClient(username, password, apiURL string) API {
 	return API{username: username, password: password, apiURL: apiURL}
 }
 
-// DoAPIRequest does request to API with specified method and returns response body on success.
+// DoAPIRequest does request to API with specified method
+// and returns response body on success.
 // Not thread safe.
 func (p *API) DoAPIRequest(method, url string, body io.Reader) ([]byte, error) {
-	req, err := http.NewRequest(method, p.apiURL+url, body)
-	if err != nil {
-		return nil, errors.Wrap(err, "error creating request")
-	}
-	req.Header.Set("Content-Type", "application/json")
 	if time.Since(p.tokenRenewTime) > prismaRenewTimeout {
 		if err := p.authenticate(); err != nil {
 			return nil, errors.Wrap(err, "error getting auth token")
 		}
 	}
-	req.Header.Set("x-redlock-auth", p.token)
+	return p.doAPIRequestWithToken(method, url, p.token, body)
+}
+
+// doAPIRequestWithToken does request to API with specified method and
+// provided token and returns response body on success.
+// Thread safe.
+func (p *API) doAPIRequestWithToken(method, url, token string, body io.Reader) ([]byte, error) {
+	req, err := http.NewRequest(method, p.apiURL+url, body)
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating request")
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-redlock-auth", token)
 	httpClient := http.Client{Timeout: httpClientTimeout}
 	response, err := httpClient.Do(req)
 	if err != nil {
@@ -105,7 +113,7 @@ func (p *API) authenticate() error {
 		if err != nil {
 			return errors.Wrap(err, "error marshaling login data")
 		}
-		data, err := p.DoAPIRequest("POST", "/login", bytes.NewBuffer(jsonValue))
+		data, err := p.doAPIRequestWithToken("POST", "/login", "", bytes.NewBuffer(jsonValue))
 		if err != nil {
 			return errors.Wrapf(err, "error logging in with user %q", p.username)
 		}
@@ -115,7 +123,7 @@ func (p *API) authenticate() error {
 		p.token = res.Token
 	default:
 		// token is set and we will try to renew it
-		data, err := p.DoAPIRequest("GET", "/auth_token/extend", nil)
+		data, err := p.doAPIRequestWithToken("GET", "/auth_token/extend", p.token, nil)
 		if err != nil {
 			log.Printf("[INFO] Error extending token, will re-login, %v", err)
 			p.token = ""
