@@ -21,6 +21,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -117,6 +118,46 @@ func TestApiRequest(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestApiRequestParallel(t *testing.T) {
+	// prepare server
+	// server is not very parallel-safe, but works up to go test -count=50 ./...
+	var firstAuth bool
+	goodServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !firstAuth {
+			assert.Equal(t, "/login", r.URL.Path)
+			assert.Equal(t, "POST", r.Method)
+			buf := new(bytes.Buffer)
+			_, _ = buf.ReadFrom(r.Body)
+			assert.Equal(t, "{\"password\":\"test_password\",\"username\":\"test_user\"}", buf.String())
+			_, _ = fmt.Fprint(w, "{\"token\":\"test_token\"}")
+			firstAuth = true
+			return
+		}
+		assert.Equal(t, "/check", r.URL.Path)
+		assert.Equal(t, "GET", r.Method)
+		_, _ = fmt.Fprint(w, "pong")
+	}))
+	defer goodServer.Close()
+
+	// start test
+	wg := sync.WaitGroup{}
+	start := make(chan struct{})
+	p := NewClient("test_user", "test_password", goodServer.URL)
+
+	for i := 0; i < 300; i++ {
+		wg.Add(1) // nolint:gomnd
+		go func(wg *sync.WaitGroup, i int) {
+			<-start
+			resp, err := p.DoAPIRequest("GET", "/check", nil)
+			assert.NoError(t, err, "Test case %d error check failed", i)
+			assert.Equal(t, "pong", string(resp), "Test case %d API object token check failed", i)
+			wg.Done()
+		}(&wg, i)
+	}
+	close(start)
+	wg.Wait()
 }
 
 func TestNewPrisma(t *testing.T) {

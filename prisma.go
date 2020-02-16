@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -39,6 +40,7 @@ type API struct {
 	apiURL         string
 	token          string
 	tokenRenewTime time.Time
+	tokenLock      sync.Mutex
 }
 
 // service structure for authentication API endpoints response unmarshaling
@@ -56,14 +58,18 @@ func NewClient(username, password, apiURL string) API {
 
 // DoAPIRequest does request to API with specified method
 // and returns response body on success.
-// Not thread safe.
+// Thread safe.
 func (p *API) DoAPIRequest(method, url string, body io.Reader) ([]byte, error) {
+	p.tokenLock.Lock()
 	if time.Since(p.tokenRenewTime) > prismaRenewTimeout {
 		if err := p.authenticate(); err != nil {
+			p.tokenLock.Unlock()
 			return nil, errors.Wrap(err, "error getting auth token")
 		}
 	}
-	return doAPIRequestWithToken(method, p.apiURL+url, p.token, body)
+	token := p.token
+	p.tokenLock.Unlock()
+	return doAPIRequestWithToken(method, p.apiURL+url, token, body)
 }
 
 // authenticate gets or renews the API authentication token
