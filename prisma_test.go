@@ -196,7 +196,6 @@ func TestNewPrisma(t *testing.T) {
 			} else {
 				assert.NoError(t, err, "Test case %d error check failed", i)
 			}
-			assert.NotNil(t, p, "Test case %d API object return check failed", i)
 			assert.Equal(t, x.responseToken, p.token, "Test case %d API object token check failed", i)
 		})
 	}
