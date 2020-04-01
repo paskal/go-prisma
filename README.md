@@ -38,7 +38,7 @@ func main() {
 	log.Printf("[INFO] Initialising Prisma connection with API key %s", opts.PrismAPIKey)
 
 	p := prisma.NewClient(opts.PrismAPIKey, opts.PrismAPIPassword, opts.PrismAPIUrl)
-	healthCheckResult, err := p.DoAPIRequest("GET", "/check", nil)
+	healthCheckResult, err := p.Call("GET", "/check", nil)
 	if err != nil {
 		log.Printf("[ERROR] Can't check Prisma health, %s", err)
 		return

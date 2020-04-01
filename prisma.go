@@ -57,10 +57,10 @@ func NewClient(username, password, apiURL string) *API {
 	return &API{username: username, password: password, apiURL: apiURL, httpClientTimeout: defaultHTTPClientTimeout}
 }
 
-// DoAPIRequest does request to API with specified method
+// Call does request to API with specified method
 // and returns response body on success.
 // Thread safe.
-func (p *API) DoAPIRequest(method, url string, body io.Reader) ([]byte, error) {
+func (p *API) Call(method, url string, body io.Reader) ([]byte, error) {
 	p.tokenLock.Lock()
 	if time.Since(p.tokenRenewTime) > prismaRenewTimeout {
 		if err := p.authenticate(); err != nil {
@@ -70,7 +70,7 @@ func (p *API) DoAPIRequest(method, url string, body io.Reader) ([]byte, error) {
 	}
 	token := p.token
 	p.tokenLock.Unlock()
-	return doAPIRequestWithToken(method, p.apiURL+url, token, body)
+	return callWithToken(method, p.apiURL+url, token, body)
 }
 
 // SetTimeout sets http timeout for Prisma requests to specified value.
@@ -94,7 +94,7 @@ func (p *API) authenticate() error {
 		if err != nil {
 			return errors.Wrap(err, "error marshaling login data")
 		}
-		data, err := doAPIRequestWithToken("POST", p.apiURL+"/login", "", bytes.NewBuffer(jsonValue))
+		data, err := callWithToken("POST", p.apiURL+"/login", "", bytes.NewBuffer(jsonValue))
 		if err != nil {
 			return errors.Wrapf(err, "error logging in with user %q", p.username)
 		}
@@ -104,7 +104,7 @@ func (p *API) authenticate() error {
 		p.token = res.Token
 	default:
 		// token is set and we will try to renew it
-		data, err := doAPIRequestWithToken("GET", p.apiURL+"/auth_token/extend", p.token, nil)
+		data, err := callWithToken("GET", p.apiURL+"/auth_token/extend", p.token, nil)
 		if err != nil {
 			log.Printf("[INFO] Error extending token, will re-login, %v", err)
 			p.token = ""
@@ -120,10 +120,10 @@ func (p *API) authenticate() error {
 	return nil
 }
 
-// doAPIRequestWithToken does request to API with specified method and
+// callWithToken does request to Prisma API with specified method and
 // provided token and returns response body on success.
 // Thread safe.
-func doAPIRequestWithToken(method, fullURL, token string, body io.Reader) ([]byte, error) {
+func callWithToken(method, fullURL, token string, body io.Reader) ([]byte, error) {
 	req, err := http.NewRequest(method, fullURL, body)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating request")

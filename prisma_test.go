@@ -106,7 +106,7 @@ func TestApiRequest(t *testing.T) {
 		x := x
 		t.Run(x.description, func(t *testing.T) {
 			p.apiURL = x.serverURL
-			data, err := p.DoAPIRequest(x.method, x.url, x.body)
+			data, err := p.Call(x.method, x.url, x.body)
 			if x.error != "" {
 				assert.EqualError(t, err, x.error, "Test case %d error check failed", i)
 			} else {
@@ -151,7 +151,7 @@ func TestApiRequestParallel(t *testing.T) {
 		wg.Add(1) // nolint:gomnd
 		go func(wg *sync.WaitGroup, i int) {
 			<-start
-			resp, err := p.DoAPIRequest("GET", "/check", nil)
+			resp, err := p.Call("GET", "/check", nil)
 			assert.NoError(t, err, "Test case %d error check failed", i)
 			assert.Equal(t, "pong", string(resp), "Test case %d API object token check failed", i)
 			wg.Done()
