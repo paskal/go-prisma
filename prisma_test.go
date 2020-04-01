@@ -23,6 +23,7 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -72,11 +73,11 @@ func TestApiRequest(t *testing.T) {
 	}{
 		{description: "bad port",
 			serverURL: "http://[::1]:namedport", method: "POST",
-			error: "error getting auth token: error logging in with user \"\": error creating request: " +
-				"parse http://[::1]:namedport/login: invalid port \":namedport\" after host"},
+			error: `error getting auth token: error logging in with user "": error creating request: ` +
+				`parse "http://[::1]:namedport/login": invalid port ":namedport" after host`},
 		{description: "nonexistent url",
 			serverURL: "nonexistent_url", method: "POST",
-			error: "error making request: Post nonexistent_url: unsupported protocol scheme \"\""},
+			error: `error making request: Post "nonexistent_url": unsupported protocol scheme ""`},
 		{description: "good response",
 			serverURL: goodServer.URL, method: "POST", url: "/login",
 			responseBody: []byte("one, two, three"), body: bytes.NewReader([]byte("test_text"))},
@@ -160,7 +161,7 @@ func TestApiRequestParallel(t *testing.T) {
 	wg.Wait()
 }
 
-func TestNewPrisma(t *testing.T) {
+func TestNewClient(t *testing.T) {
 	// prepare servers
 	goodServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/login", r.URL.Path)
@@ -205,8 +206,8 @@ func TestNewPrisma(t *testing.T) {
 	}{
 		{description: "nonexistent url",
 			serverURL: "nonexistent_url", username: "test_username",
-			error: "error logging in with user \"test_username\": error making request: " +
-				"Post nonexistent_url/login: unsupported protocol scheme \"\""},
+			error: `error logging in with user "test_username": error making request: ` +
+				`Post "nonexistent_url/login": unsupported protocol scheme ""`},
 		{description: "good server",
 			serverURL: goodServer.URL, username: "test_user", password: "test_password", responseToken: "test_token"},
 		{description: "bad server answer",
@@ -217,7 +218,7 @@ func TestNewPrisma(t *testing.T) {
 			setToken: "old_good_token", responseToken: "test_token_renewed"},
 		{description: "bad renew server",
 			serverURL: badRenewServer.URL, username: "test_user", password: "test_password", setToken: "old_bad_token",
-			error: "error logging in with user \"test_user\": authentication error on request, response body: \"\""},
+			error: `error logging in with user "test_user": authentication error on request, response body: ""`},
 		{description: "empty answer server",
 			serverURL: badEmptyServer.URL, username: "test_user", password: "test_password", setToken: "old_bad_token",
 			error: "error obtaining token from login response: unexpected end of JSON input"},
@@ -240,4 +241,11 @@ func TestNewPrisma(t *testing.T) {
 			assert.Equal(t, x.responseToken, p.token, "Test case %d API object token check failed", i)
 		})
 	}
+}
+
+func TestAPI_SetTimeout(t *testing.T) {
+	p := NewClient("test_user", "test_password", "")
+	assert.Equal(t, defaultHTTPClientTimeout, p.httpClientTimeout)
+	p.SetTimeout(time.Nanosecond)
+	assert.Equal(t, time.Nanosecond, p.httpClientTimeout)
 }

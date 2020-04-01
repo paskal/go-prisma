@@ -31,16 +31,17 @@ import (
 // prismaRenewTimeout defines how often auth token is renewed,
 // after 10 minutes it gets invalidated and new complete login is required
 const prismaRenewTimeout = time.Minute * 3
-const httpClientTimeout = time.Second * 5
+const defaultHTTPClientTimeout = time.Second * 5
 
 // API is an object to make API calls to Palo Alto Prisma Cloud
 type API struct {
-	username       string
-	password       string
-	apiURL         string
-	token          string
-	tokenRenewTime time.Time
-	tokenLock      sync.Mutex
+	username          string
+	password          string
+	apiURL            string
+	token             string
+	httpClientTimeout time.Duration
+	tokenRenewTime    time.Time
+	tokenLock         sync.Mutex
 }
 
 // service structure for authentication API endpoints response unmarshaling
@@ -53,7 +54,7 @@ type authResponse struct {
 // username and password are the same as API Key and API Password.
 // Recommended value for apiURL is https://api.eu.prismacloud.io
 func NewClient(username, password, apiURL string) *API {
-	return &API{username: username, password: password, apiURL: apiURL}
+	return &API{username: username, password: password, apiURL: apiURL, httpClientTimeout: defaultHTTPClientTimeout}
 }
 
 // DoAPIRequest does request to API with specified method
@@ -70,6 +71,14 @@ func (p *API) DoAPIRequest(method, url string, body io.Reader) ([]byte, error) {
 	token := p.token
 	p.tokenLock.Unlock()
 	return doAPIRequestWithToken(method, p.apiURL+url, token, body)
+}
+
+// SetTimeout sets http timeout for Prisma requests to specified value.
+// Thread safe.
+func (p *API) SetTimeout(t time.Duration) {
+	p.tokenLock.Lock()
+	p.httpClientTimeout = t
+	p.tokenLock.Unlock()
 }
 
 // authenticate gets or renews the API authentication token
@@ -121,7 +130,7 @@ func doAPIRequestWithToken(method, fullURL, token string, body io.Reader) ([]byt
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-redlock-auth", token)
-	httpClient := http.Client{Timeout: httpClientTimeout}
+	httpClient := http.Client{Timeout: defaultHTTPClientTimeout}
 	response, err := httpClient.Do(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "error making request")
