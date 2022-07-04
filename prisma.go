@@ -18,14 +18,13 @@ package prisma
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"sync"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // prismaRenewTimeout defines how often auth token is renewed,
@@ -44,7 +43,7 @@ type API struct {
 	tokenLock         sync.Mutex
 }
 
-// service structure for authentication API endpoints response unmarshaling
+// service structure for authentication API endpoints response unmarshalling
 type authResponse struct {
 	Token string `json:"token"`
 }
@@ -65,7 +64,7 @@ func (p *API) Call(method, url string, body io.Reader) ([]byte, error) {
 	if time.Since(p.tokenRenewTime) > prismaRenewTimeout {
 		if err := p.authenticate(); err != nil {
 			p.tokenLock.Unlock()
-			return nil, errors.Wrap(err, "error getting auth token")
+			return nil, fmt.Errorf("error getting auth token: %w", err)
 		}
 	}
 	token := p.token
@@ -92,14 +91,14 @@ func (p *API) authenticate() error {
 		loginData := map[string]string{"username": p.username, "password": p.password}
 		jsonValue, err := json.Marshal(loginData)
 		if err != nil {
-			return errors.Wrap(err, "error marshaling login data")
+			return fmt.Errorf("error marshaling login data: %w", err)
 		}
 		data, err := callWithToken("POST", p.apiURL+"/login", "", bytes.NewBuffer(jsonValue))
 		if err != nil {
-			return errors.Wrapf(err, "error logging in with user %q", p.username)
+			return fmt.Errorf("error logging in with user %q: %w", p.username, err)
 		}
 		if err := json.Unmarshal(data, res); err != nil {
-			return errors.Wrap(err, "error obtaining token from login response")
+			return fmt.Errorf("error obtaining token from login response: %w", err)
 		}
 		p.token = res.Token
 	default:
@@ -126,30 +125,30 @@ func (p *API) authenticate() error {
 func callWithToken(method, fullURL, token string, body io.Reader) ([]byte, error) {
 	req, err := http.NewRequest(method, fullURL, body)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating request")
+		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-redlock-auth", token)
 	httpClient := http.Client{Timeout: defaultHTTPClientTimeout}
 	response, err := httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "error making request")
+		return nil, fmt.Errorf("error making request: %w", err)
 	}
 	data, err := ioutil.ReadAll(response.Body)
 	defer response.Body.Close() // nolint:errcheck
 	if err != nil {
-		return nil, errors.Wrapf(err, "error reading response body, response body: %q", data)
+		return nil, fmt.Errorf("error reading response body, response body: %q: %w", data, err)
 	}
 	switch response.StatusCode {
 	case http.StatusOK:
 		return data, nil
 	case http.StatusUnauthorized:
-		return nil, errors.Errorf("authentication error on request, response body: %q", data)
+		return nil, fmt.Errorf("authentication error on request, response body: %q", data)
 	case http.StatusBadRequest:
-		return nil, errors.Errorf("bad request parameters, check your request body, response body: %q", data)
+		return nil, fmt.Errorf("bad request parameters, check your request body, response body: %q", data)
 	case http.StatusInternalServerError:
-		return nil, errors.Errorf("server internal error during request processing, response body: %q", data)
+		return nil, fmt.Errorf("server internal error during request processing, response body: %q", data)
 	default:
-		return nil, errors.Errorf("%v, response body: %q", response.Status, data)
+		return nil, fmt.Errorf("%v, response body: %q", response.Status, data)
 	}
 }

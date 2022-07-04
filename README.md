@@ -45,5 +45,4 @@ func main() {
 	}
 	log.Printf("[INFO] Prisma /check endpoint answer: %s", healthCheckResult)
 }
-
 ```
