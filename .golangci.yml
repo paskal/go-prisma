@@ -1,7 +1,6 @@
 linters:
   enable:
   - bodyclose
-  - depguard
   - dogsled
   - dupl
   - errcheck
@@ -12,7 +11,7 @@ linters:
   - gofmt
   - goimports
   - revive
-  - gomnd
+  - mnd
   - goprintffuncname
   - gochecknoglobals
   - gochecknoinits

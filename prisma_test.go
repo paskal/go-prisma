@@ -45,19 +45,19 @@ func TestApiRequest(t *testing.T) {
 		w.Header().Set("Content-Length", "1")
 	}))
 	defer badServer.Close()
-	serverStatusUnauthorized := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	serverStatusUnauthorized := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 	}))
 	defer serverStatusUnauthorized.Close()
-	serverStatusBadRequest := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	serverStatusBadRequest := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}))
 	defer serverStatusBadRequest.Close()
-	serverStatusInternalServerError := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	serverStatusInternalServerError := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer serverStatusInternalServerError.Close()
-	serverStatusNotFound := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	serverStatusNotFound := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 	defer serverStatusNotFound.Close()
@@ -178,11 +178,11 @@ func TestNewClient(t *testing.T) {
 		_, _ = fmt.Fprint(w, "{\"token\":\"test_token_renewed\"}")
 	}))
 	defer goodRenewServer.Close()
-	badRenewServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	badRenewServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 	}))
 	defer badRenewServer.Close()
-	badEmptyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	badEmptyServer := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 	}))
 	defer badEmptyServer.Close()
 	badAnswerServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
