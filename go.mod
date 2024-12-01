@@ -2,4 +2,4 @@ module github.com/paskal/go-prisma
 
 go 1.13
 
-require github.com/stretchr/testify v1.9.0
+require github.com/stretchr/testify v1.10.0
